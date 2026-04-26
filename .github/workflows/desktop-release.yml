@@ -80,11 +80,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Remove Replit metadata folders
+      - name: Prepare local copies for electron-builder
         shell: pwsh
         run: |
-          Get-ChildItem -Path . -Recurse -Filter ".replit-artifact" -Directory | Remove-Item -Recurse -Force
-          Write-Host "Removed .replit-artifact folders"
+          # Copy workspace outputs into desktop folder so electron-builder
+          # never has to follow symlinks outside artifacts/desktop/
+          $desktop = "artifacts/desktop"
+          
+          # api-server dist
+          $dst1 = "$desktop/vendor/api-server"
+          if (Test-Path $dst1) { Remove-Item $dst1 -Recurse -Force }
+          Copy-Item "artifacts/api-server/dist" $dst1 -Recurse
+
+          # db migrations
+          $dst2 = "$desktop/vendor/db"
+          if (Test-Path $dst2) { Remove-Item $dst2 -Recurse -Force }
+          Copy-Item "lib/db/drizzle" "$dst2/drizzle" -Recurse
+
+          # frontend dist
+          $dst3 = "$desktop/vendor/facilitytrack"
+          if (Test-Path $dst3) { Remove-Item $dst3 -Recurse -Force }
+          Copy-Item "artifacts/facilitytrack/dist/public" "$dst3/dist/public" -Recurse
+
+          Write-Host "Vendor copies ready"
 
       - name: Build and sign Windows installer
         env:
