@@ -22,14 +22,17 @@ extraResources:
     to: "facilitytrack/dist/public"
     filter:
       - "**/*"
+      - "!**/.replit-artifact/**"
   - from: "../api-server/dist"
     to: "api-server/dist"
     filter:
       - "**/*"
+      - "!**/.replit-artifact/**"
   - from: "../../lib/db/drizzle"
     to: "lib/db/drizzle"
     filter:
       - "**/*"
+      - "!**/.replit-artifact/**"
 
 asarUnpack:
   # better-sqlite3 ships native .node binaries that must live outside asar.
