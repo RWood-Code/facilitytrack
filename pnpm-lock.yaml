@@ -243,12 +243,6 @@ importers:
 
   artifacts/desktop:
     dependencies:
-      '@workspace/api-server':
-        specifier: workspace:*
-        version: link:../api-server
-      '@workspace/db':
-        specifier: workspace:*
-        version: link:../../lib/db
       better-sqlite3:
         specifier: ^12.9.0
         version: 12.9.0
@@ -262,6 +256,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@workspace/api-server':
+        specifier: workspace:*
+        version: link:../api-server
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
       electron:
         specifier: ^33.2.0
         version: 33.4.11
