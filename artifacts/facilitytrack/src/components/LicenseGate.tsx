@@ -49,15 +49,29 @@ export function LicenseGate({ children }: LicenseGateProps) {
     return (
       <CenteredCard title="Licence check failed">
         <p className="text-sm text-muted-foreground">{errorMsg}</p>
-        <button
-          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-          onClick={() => {
-            setView("loading");
-            void refresh();
-          }}
-        >
-          Retry
-        </button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            onClick={() => {
+              setView("loading");
+              void refresh();
+            }}
+          >
+            Retry
+          </button>
+          <button
+            className="rounded-md border px-4 py-2 text-sm font-medium"
+            onClick={() => {
+              // Defensive escape hatch: even if /license/status keeps failing,
+              // the user can always reach the activation form to enter a key.
+              setStatus(null);
+              setErrorMsg(null);
+              setView("blocked");
+            }}
+          >
+            Enter licence key
+          </button>
+        </div>
       </CenteredCard>
     );
   }
