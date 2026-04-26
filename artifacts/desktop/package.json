@@ -9,22 +9,21 @@
     "build": "node ./build.mjs",
     "build:renderer": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/facilitytrack run build",
     "build:all": "pnpm run build:renderer && pnpm run build",
-    "vendor:copy": "node ./scripts/vendor-copy.mjs",
     "start": "electron .",
     "dev": "pnpm run build:all && pnpm run start",
-    "dist:win": "pnpm run build:all && pnpm run vendor:copy && node ./scripts/sign-and-build.mjs --win nsis --publish never",
-    "dist:win:publish": "pnpm run build:all && pnpm run vendor:copy && node ./scripts/sign-and-build.mjs --win nsis --publish always",
+    "dist:win": "pnpm run build:all && node ./scripts/sign-and-build.mjs --win nsis --publish never",
+    "dist:win:publish": "pnpm run build:all && node ./scripts/sign-and-build.mjs --win nsis --publish always",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@workspace/api-server": "workspace:*",
-    "@workspace/db": "workspace:*",
     "better-sqlite3": "^12.9.0",
     "electron-log": "^5.2.0",
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@workspace/api-server": "workspace:*",
+    "@workspace/db": "workspace:*",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.27.3",
