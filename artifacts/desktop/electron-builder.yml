@@ -12,15 +12,6 @@ files:
   - "dist/**"
   - "package.json"
   - "!**/*.map"
-  - "!**/src/**"
-  - "!**/build.mjs"
-  - "!**/.replit-artifact/**"
-  - "!**/tsconfig*.json"
-  - "!**/vitest.config*"
-  - "!**/node_modules/@workspace/api-server/src/**"
-  - "!**/node_modules/@workspace/api-server/build.mjs"
-  - "!**/node_modules/@workspace/facilitytrack/src/**"
-  - "!**/node_modules/@workspace/db/src/**"
   
 # Renderer (React frontend) and migration files travel as `extraResources`
 # so the Express server's `STATIC_FILES_PATH` lookup finds them next to the
