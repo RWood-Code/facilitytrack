@@ -78,6 +78,17 @@ if (certB64 && certB64.length > 0) {
   // electron-builder to attempt signing even when the env var is empty
   // (e.g. ALLOW_UNSIGNED=1), which fails with
   // "Please specify pkcs12 (.p12/.pfx) file, ${env.WIN_CSC_FILE} is not correct".
+  //
+  // Defensive cleanup: clear any pre-existing global cert env vars on the
+  // runner before installing our own. electron-builder also recognises the
+  // legacy `CSC_LINK` / `CSC_KEY_PASSWORD` names — if a self-hosted runner
+  // (or an unrelated workflow earlier in the same job) had those exported,
+  // they could shadow or conflict with the per-build values we're about to
+  // set. GitHub-hosted runners don't have these set, but this guards against
+  // the day someone migrates to self-hosted infra.
+  delete process.env.CSC_LINK;
+  delete process.env.CSC_KEY_PASSWORD;
+  delete process.env.WIN_CSC_FILE;
   process.env.WIN_CSC_LINK = certPath;
   process.env.WIN_CSC_KEY_PASSWORD = certPass;
   signedRelease = true;
