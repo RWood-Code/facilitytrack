@@ -171,6 +171,12 @@ async function startEmbeddedServer(): Promise<RunningServer> {
     process.env.LICENSE_SERVER_URL =
       "https://facilitytrack-license.replit.app/license-server";
   }
+  // The embedded api-server binds plain http://127.0.0.1:<random-port>; with
+  // NODE_ENV=production it would otherwise issue Secure cookies that the
+  // renderer's HTTP origin can never send back, so /auth/me returns 401
+  // immediately after a successful POST /auth/login and the UI bounces
+  // back to the sign-in screen. Loopback-only listener → safe to opt out.
+  process.env.FACILITYTRACK_INSECURE_COOKIES = "1";
 
   log.info({ dbPath, staticPath, migrationsPath }, "Starting embedded API server");
 
