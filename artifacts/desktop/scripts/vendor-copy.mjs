@@ -8,7 +8,10 @@
  * packages (api-server, facilitytrack, lib/db).
  *
  * Called automatically as part of the dist:win and dist:win:publish scripts
- * in package.json — runs after build:all, before electron-builder.
+ * in package.json — runs after build:all AND after rebuild:electron, so the
+ * better-sqlite3 binary in desktop/node_modules is already rebuilt for
+ * Electron's ABI by the time we override the api-server's vendored copy
+ * with it (see "ABI override" step below).
  */
 
 import { cpSync, rmSync, existsSync } from "node:fs";
@@ -59,5 +62,52 @@ for (const { label, src, dst } of copies) {
 if (!allOk) {
   process.exit(1);
 }
+
+// ---------------------------------------------------------------------------
+// ABI override: replace api-server's vendored better-sqlite3 with the
+// Electron-rebuilt copy from desktop/node_modules.
+// ---------------------------------------------------------------------------
+//
+// embed.mjs (the bundled api-server entry point) does
+// `import Database from "better-sqlite3"`. At runtime its location is
+// `<resources>/api-server/dist/embed.mjs`, so Node's module resolver finds
+// the *vendored* copy first at
+// `<resources>/api-server/dist/node_modules/better-sqlite3/`. That copy was
+// installed by pnpm against Node's ABI on the GitHub windows-latest runner;
+// loading it inside Electron throws a NODE_MODULE_VERSION mismatch the moment
+// the app boots.
+//
+// `desktop/node_modules/better-sqlite3` IS rebuilt for Electron's ABI by the
+// `rebuild:electron` script (which runs immediately before vendor:copy in the
+// dist:win pipeline — see package.json). Overwrite the vendored copy with it
+// here so the binary that ships in the installer matches Electron's ABI.
+const desktopBsq = resolve(desktop, "node_modules", "better-sqlite3");
+const vendorBsq = resolve(
+  desktop,
+  "vendor",
+  "api-server",
+  "node_modules",
+  "better-sqlite3",
+);
+
+if (!existsSync(desktopBsq)) {
+  console.error(
+    `[vendor-copy] ERROR: desktop/node_modules/better-sqlite3 not found at ${desktopBsq}.`,
+  );
+  console.error(
+    "[vendor-copy] Run `pnpm install` and `pnpm run rebuild:electron` first.",
+  );
+  process.exit(1);
+}
+
+rmSync(vendorBsq, { recursive: true, force: true });
+cpSync(desktopBsq, vendorBsq, {
+  recursive: true,
+  dereference: true,
+  force: true,
+});
+console.log(
+  `[vendor-copy] better-sqlite3 ABI override: ${desktopBsq} → ${vendorBsq}`,
+);
 
 console.log("[vendor-copy] All vendor copies complete.");
