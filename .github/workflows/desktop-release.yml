@@ -1,0 +1,206 @@
+# =============================================================================
+# FacilityTrack Desktop — Build, sign and publish the Windows installer
+#
+# Runs on `windows-latest` so electron-builder can sign with `signtool` directly
+# (no Wine, no cross-build). The signing wrapper at
+# `artifacts/desktop/scripts/sign-and-build.mjs` decodes `WIN_CSC_LINK_B64`
+# (base64 PFX) to a temp file, points electron-builder at it, and refuses to
+# build unsigned when `CI=true` — see `artifacts/desktop/README.md#code-signing`.
+#
+# Triggers:
+#   - Push of a `desktop-v*` tag (e.g. `desktop-v0.2.0`) → cuts a release.
+#   - Manual dispatch (workflow_dispatch) → useful for ad-hoc rebuilds and for
+#     verifying signing setup without cutting a tag.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   WIN_CSC_LINK_B64       — Base64 of the .pfx code-signing cert export
+#   WIN_CSC_KEY_PASSWORD   — PFX password
+#
+# The `publish:` block in `electron-builder.yml` stays on the `generic`
+# provider so the URL baked into installed clients' `app-update.yml`
+# (`https://updates.facilitytrack.co.nz/desktop`) is the stable customer-
+# facing endpoint, not a bucket-specific URL that would change on storage
+# migration. electron-builder produces the installer + `latest.yml` locally
+# and we then push them to the bucket backing that URL via the AWS CLI
+# (preinstalled on `windows-latest`). S3-compatible covers AWS S3,
+# Cloudflare R2, DigitalOcean Spaces, Backblaze B2 and MinIO — whichever is
+# hosting `updates.facilitytrack.co.nz` — by setting an `--endpoint-url`
+# override.
+#
+# Required GitHub Secrets for publishing (in addition to the signing ones):
+#   DESKTOP_UPDATE_S3_BUCKET            — bucket name
+#   DESKTOP_UPDATE_S3_REGION            — region (e.g. `us-east-1`, or `auto` for R2)
+#   DESKTOP_UPDATE_S3_ACCESS_KEY_ID     — IAM key scoped to PutObject on the bucket
+#   DESKTOP_UPDATE_S3_SECRET_ACCESS_KEY — its secret
+#   DESKTOP_UPDATE_S3_ENDPOINT          — *optional*, S3-compatible endpoint
+#                                         override (e.g.
+#                                         `https://<accountid>.r2.cloudflarestorage.com`)
+#   DESKTOP_UPDATE_S3_PREFIX            — *optional*, key prefix; defaults to
+#                                         `desktop` to match the URL path.
+# =============================================================================
+
+name: Desktop Release (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      unsigned:
+        description: "Build UNSIGNED test installer (no code-signing cert required, will trigger SmartScreen warnings)"
+        type: boolean
+        required: false
+        default: false
+  push:
+    tags:
+      - "desktop-v*"
+
+permissions:
+  contents: write  # needed to create / upload to a GitHub Release on tag push
+
+jobs:
+  build-windows:
+    name: Build & sign Windows installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and sign Windows installer
+        env:
+          # Code-signing — consumed by scripts/sign-and-build.mjs. Without
+          # WIN_CSC_LINK_B64 the script aborts because CI=true is set by the
+          # GitHub Actions runner.
+          WIN_CSC_LINK_B64: ${{ secrets.WIN_CSC_LINK_B64 }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          # Manual `Run workflow` runs can opt-in to producing an unsigned
+          # test installer (for internal QA before a cert has been bought).
+          # This NEVER fires on tag pushes — `inputs.unsigned` is empty
+          # there — so the customer release path always requires signing.
+          ALLOW_UNSIGNED: ${{ inputs.unsigned == true && '1' || '' }}
+        # `dist:win` (not `dist:win:publish`) because the customer feed is
+        # `generic` (download-only) and we upload to it explicitly in the
+        # next step. Running `--publish always` here against the generic
+        # provider would just emit a warning and do nothing.
+        run: pnpm --filter @workspace/desktop run dist:win
+
+      - name: Upload installer as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: facilitytrack-windows-installer
+          path: |
+            artifacts/desktop/release/FacilityTrack-Setup-*.exe
+            artifacts/desktop/release/latest.yml
+            artifacts/desktop/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach installer to GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/desktop/release/FacilityTrack-Setup-*.exe
+            artifacts/desktop/release/latest.yml
+            artifacts/desktop/release/*.blockmap
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+      # Push the installer + manifest to the bucket backing
+      # https://updates.facilitytrack.co.nz/desktop. Running copies of
+      # FacilityTrack poll `latest.yml` from that URL every ~4h and download
+      # the .exe it names, so:
+      #   1. Upload `*.exe` and `*.blockmap` FIRST with a long immutable
+      #      cache. They're versioned in the filename, so they never need
+      #      to be invalidated.
+      #   2. Upload `latest.yml` LAST with `no-cache` so the next client
+      #      poll picks up the new version, and so a half-uploaded release
+      #      can never advertise an installer that isn't fully there yet.
+      # Tag pushes only — manual `workflow_dispatch` rebuilds (e.g. signing
+      # smoke tests) MUST NOT roll out to customers.
+      - name: Publish installer to customer update feed
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: pwsh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DESKTOP_UPDATE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DESKTOP_UPDATE_S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.DESKTOP_UPDATE_S3_REGION }}
+          UPDATE_BUCKET: ${{ secrets.DESKTOP_UPDATE_S3_BUCKET }}
+          UPDATE_ENDPOINT: ${{ secrets.DESKTOP_UPDATE_S3_ENDPOINT }}
+          UPDATE_PREFIX: ${{ secrets.DESKTOP_UPDATE_S3_PREFIX }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if (-not $env:UPDATE_BUCKET) {
+            throw "DESKTOP_UPDATE_S3_BUCKET is not set — cannot publish to customer update feed."
+          }
+          if (-not $env:AWS_ACCESS_KEY_ID -or -not $env:AWS_SECRET_ACCESS_KEY) {
+            throw "DESKTOP_UPDATE_S3_ACCESS_KEY_ID / DESKTOP_UPDATE_S3_SECRET_ACCESS_KEY are not set — cannot publish to customer update feed."
+          }
+
+          # Default the prefix to `desktop` so keys land at
+          # s3://<bucket>/desktop/... — matching the `/desktop` path on
+          # https://updates.facilitytrack.co.nz/desktop. Operators whose
+          # bucket is dedicated to the desktop feed (no per-channel
+          # subfolder) can set DESKTOP_UPDATE_S3_PREFIX to `/` to opt out;
+          # we can't distinguish "unset secret" from "empty secret" here
+          # because GitHub renders missing secrets as the empty string.
+          if ([string]::IsNullOrEmpty($env:UPDATE_PREFIX)) {
+            $prefix = "desktop"
+          } else {
+            $prefix = $env:UPDATE_PREFIX.Trim('/')
+          }
+          $keyBase = if ($prefix) { "$prefix/" } else { "" }
+
+          $endpointArgs = @()
+          if ($env:UPDATE_ENDPOINT) {
+            $endpointArgs = @("--endpoint-url", $env:UPDATE_ENDPOINT)
+          }
+
+          function Publish-Asset($localPath, $cacheControl, $contentType) {
+            $name = Split-Path -Leaf $localPath
+            $key = "s3://$env:UPDATE_BUCKET/$keyBase$name"
+            Write-Host "Uploading $name -> $key"
+            & aws s3 cp $localPath $key `
+              --cache-control $cacheControl `
+              --content-type $contentType `
+              @endpointArgs
+            if ($LASTEXITCODE -ne 0) {
+              throw "Upload failed for $name (aws s3 cp exit $LASTEXITCODE)"
+            }
+          }
+
+          # 1. Versioned binaries first — long-lived immutable cache.
+          $installers = Get-ChildItem artifacts/desktop/release/FacilityTrack-Setup-*.exe
+          if ($installers.Count -eq 0) {
+            throw "No installer found under artifacts/desktop/release/ — did the build step succeed?"
+          }
+          foreach ($f in $installers) {
+            Publish-Asset $f.FullName "public, max-age=31536000, immutable" "application/octet-stream"
+          }
+          foreach ($f in Get-ChildItem artifacts/desktop/release/*.blockmap) {
+            Publish-Asset $f.FullName "public, max-age=31536000, immutable" "application/octet-stream"
+          }
+
+          # 2. Manifest LAST — no-cache so customers see the new version on
+          # the very next poll, and so the bucket never advertises a
+          # version whose installer isn't fully uploaded yet.
+          $manifest = "artifacts/desktop/release/latest.yml"
+          if (-not (Test-Path $manifest)) {
+            throw "latest.yml missing — electron-builder did not produce an update manifest."
+          }
+          Publish-Asset $manifest "no-cache, no-store, must-revalidate" "application/x-yaml"
