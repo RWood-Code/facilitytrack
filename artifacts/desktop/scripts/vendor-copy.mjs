@@ -26,6 +26,11 @@ const copies = [
     dst: resolve(desktop, "vendor", "api-server"),
   },
   {
+    label: "api-server node_modules",
+    src: resolve(root, "artifacts", "api-server", "node_modules"),
+    dst: resolve(desktop, "vendor", "api-server", "node_modules"),
+  },
+  {
     label: "facilitytrack dist/public",
     src: resolve(root, "artifacts", "facilitytrack", "dist", "public"),
     dst: resolve(desktop, "vendor", "facilitytrack", "dist", "public"),
