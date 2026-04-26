@@ -20,19 +20,26 @@ files:
 # by scripts/vendor-copy.mjs (called from the dist:win script) before
 # electron-builder runs. All paths stay inside artifacts/desktop/ so
 # electron-builder never needs to resolve symlinks to sibling workspaces.
+# Exclude build artifacts, source maps, and other non-runtime files.
 extraResources:
   - from: "vendor/facilitytrack/dist/public"
     to: "facilitytrack/dist/public"
     filter:
       - "**/*"
+      - "!**/*.map"
   - from: "vendor/api-server"
     to: "api-server/dist"
     filter:
       - "**/*"
+      - "!**/*.map"
+      - "!**/.replit-artifact/**"
+      - "!**/src/**"
+      - "!**/dist/src/**"
   - from: "vendor/db/drizzle"
     to: "lib/db/drizzle"
     filter:
       - "**/*"
+      - "!**/*.map"
 
 asarUnpack:
   # better-sqlite3 ships native .node binaries that must live outside asar.
