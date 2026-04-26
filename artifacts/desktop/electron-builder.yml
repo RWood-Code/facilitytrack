@@ -1,0 +1,98 @@
+appId: nz.facilitytrack.desktop
+productName: FacilityTrack
+copyright: Copyright © 2026 FacilityTrack
+directories:
+  output: release
+  buildResources: assets
+
+# Files inside `app.asar`. The Electron main bundle and its direct deps live
+# under `dist/` and `node_modules/` (electron-builder picks up node_modules
+# automatically based on package.json).
+files:
+  - "dist/**"
+  - "package.json"
+  - "!**/*.map"
+
+# Renderer (React frontend) and migration files travel as `extraResources`
+# so the Express server's `STATIC_FILES_PATH` lookup finds them next to the
+# packaged app. Paths are mirrored — the main process resolves them via
+# `process.resourcesPath`.
+extraResources:
+  - from: "../facilitytrack/dist/public"
+    to: "facilitytrack/dist/public"
+    filter:
+      - "**/*"
+  - from: "../api-server/dist"
+    to: "api-server/dist"
+    filter:
+      - "**/*"
+  - from: "../../lib/db/drizzle"
+    to: "lib/db/drizzle"
+    filter:
+      - "**/*"
+
+asarUnpack:
+  # better-sqlite3 ships native .node binaries that must live outside asar.
+  - "**/node_modules/better-sqlite3/**"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "FacilityTrack-Setup-${version}.${ext}"
+  icon: assets/icon.ico
+  # Code signing. The wrapper at scripts/sign-and-build.mjs decodes the
+  # base64 PFX from `WIN_CSC_LINK_B64` to a temp file and exports
+  # `WIN_CSC_FILE` before invoking electron-builder. `WIN_CSC_KEY_PASSWORD`
+  # holds the PFX password (both come from CI secrets — see
+  # README.md#code-signing). When the env vars are absent (local dev),
+  # both fields resolve to empty strings and electron-builder produces an
+  # unsigned installer.
+  certificateFile: ${env.WIN_CSC_FILE}
+  certificatePassword: ${env.WIN_CSC_KEY_PASSWORD}
+  signingHashAlgorithms:
+    - sha256
+  # RFC 3161 timestamp server. Counter-signs the Authenticode signature
+  # with a trusted timestamp so installers stay valid after the
+  # code-signing certificate expires — Windows trusts the signature as
+  # long as the cert was valid *at the time of signing*. Without this,
+  # customers who install FacilityTrack post-cert-expiry would see
+  # SmartScreen/UAC treat the binary as unsigned. DigiCert's timestamp
+  # service is free and widely trusted; swap for `http://timestamp.sectigo.com`
+  # if DigiCert is ever unreachable from the build environment.
+  rfc3161TimeStampServer: http://timestamp.digicert.com
+  # Must match the CN on the certificate. Update if the cert is reissued
+  # under a different legal name.
+  publisherName: FacilityTrack Limited
+  # Verify the embedded signature on auto-updates so a rotated/expired
+  # cert doesn't silently break the update channel.
+  verifyUpdateCodeSignature: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: FacilityTrack
+  uninstallDisplayName: FacilityTrack ${version}
+
+# `electron-updater` reads this and writes `app-update.yml` into the packaged
+# app — the URL below is what running installs poll for `latest.yml` and
+# download the installer from. The provider stays `generic` (download-only)
+# on purpose: the customer-facing URL is a stable custom domain, decoupled
+# from whichever S3-compatible bucket happens to back it (AWS S3, Cloudflare
+# R2, DigitalOcean Spaces, etc.). If we used `s3` here directly,
+# electron-builder would bake the bucket's own URL into `app-update.yml` and
+# every storage migration would orphan existing installs.
+#
+# Uploading new releases to that bucket is handled by the
+# `Publish installer to customer update feed` step in
+# `.github/workflows/desktop-release.yml` — see that file's header for the
+# required CI secrets.
+publish:
+  - provider: generic
+    url: https://updates.facilitytrack.co.nz/desktop
+    channel: latest

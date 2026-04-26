@@ -1,0 +1,3 @@
+Place `icon.ico` (Windows installer/app icon) here before running
+`pnpm run dist:win`. Without an icon, electron-builder falls back to the
+default Electron icon.

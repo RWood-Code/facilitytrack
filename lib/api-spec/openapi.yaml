@@ -1,0 +1,3314 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: FacilityTrack Aquatic Operations API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: pools
+    description: Pool management
+  - name: facilities
+    description: Facility management
+  - name: test-results
+    description: Pool water test results
+  - name: water-balance
+    description: Water balance tests
+  - name: pool-closures
+    description: Pool closure logs
+  - name: steam-room
+    description: Steam room checks
+  - name: work-orders
+    description: Work orders
+  - name: assets
+    description: Asset management
+  - name: maintenance-schedules
+    description: Maintenance schedules
+  - name: staff
+    description: Staff management
+  - name: staff-qualifications
+    description: Staff qualifications
+  - name: training-records
+    description: Training records
+  - name: notifications
+    description: Notifications
+  - name: app-users
+    description: App user management
+  - name: dashboard
+    description: Dashboard summary data
+  - name: reports
+    description: Reports and exports
+  - name: audit-logs
+    description: Audit log of changes to records
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── FACILITIES ──────────────────────────────────────────────────────────────
+  /facilities:
+    get:
+      operationId: listFacilities
+      tags: [facilities]
+      summary: List all facilities
+      responses:
+        "200":
+          description: List of facilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Facility"
+    post:
+      operationId: createFacility
+      tags: [facilities]
+      summary: Create a facility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFacilityBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Facility"
+
+  /facilities/{id}:
+    get:
+      operationId: getFacility
+      tags: [facilities]
+      summary: Get a facility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Facility
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Facility"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateFacility
+      tags: [facilities]
+      summary: Update a facility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFacilityBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Facility"
+    delete:
+      operationId: deleteFacility
+      tags: [facilities]
+      summary: Delete a facility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── POOLS ────────────────────────────────────────────────────────────────────
+  /pools:
+    get:
+      operationId: listPools
+      tags: [pools]
+      summary: List all pools
+      parameters:
+        - name: facilityId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of pools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pool"
+    post:
+      operationId: createPool
+      tags: [pools]
+      summary: Create a pool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePoolBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pool"
+
+  /pools/{id}:
+    get:
+      operationId: getPool
+      tags: [pools]
+      summary: Get a pool
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pool"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePool
+      tags: [pools]
+      summary: Update a pool
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePoolBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pool"
+    delete:
+      operationId: deletePool
+      tags: [pools]
+      summary: Delete a pool
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── TEST RESULTS ─────────────────────────────────────────────────────────────
+  /test-results:
+    get:
+      operationId: listTestResults
+      tags: [test-results]
+      summary: List test results
+      parameters:
+        - name: poolId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: isCompliant
+          in: query
+          schema:
+            type: ["boolean", "null"]
+        - name: dateFrom
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateTo
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of test results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TestResult"
+    post:
+      operationId: createTestResult
+      tags: [test-results]
+      summary: Record a pool water test
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestResultBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestResult"
+
+  /test-results/{id}:
+    get:
+      operationId: getTestResult
+      tags: [test-results]
+      summary: Get a test result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestResult"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTestResult
+      tags: [test-results]
+      summary: Update a test result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTestResultBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestResult"
+    delete:
+      operationId: deleteTestResult
+      tags: [test-results]
+      summary: Delete a test result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── WATER BALANCE ────────────────────────────────────────────────────────────
+  /water-balance-tests:
+    get:
+      operationId: listWaterBalanceTests
+      tags: [water-balance]
+      summary: List water balance tests
+      parameters:
+        - name: poolId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of water balance tests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WaterBalanceTest"
+    post:
+      operationId: createWaterBalanceTest
+      tags: [water-balance]
+      summary: Record a water balance test
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWaterBalanceTestBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaterBalanceTest"
+
+  /water-balance-tests/{id}:
+    get:
+      operationId: getWaterBalanceTest
+      tags: [water-balance]
+      summary: Get a water balance test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Water balance test
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaterBalanceTest"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWaterBalanceTest
+      tags: [water-balance]
+      summary: Update a water balance test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWaterBalanceTestBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaterBalanceTest"
+    delete:
+      operationId: deleteWaterBalanceTest
+      tags: [water-balance]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── POOL CLOSURES ────────────────────────────────────────────────────────────
+  /pool-closures:
+    get:
+      operationId: listPoolClosures
+      tags: [pool-closures]
+      summary: List pool closures
+      parameters:
+        - name: poolId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: dateFrom
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateTo
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of pool closures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PoolClosure"
+    post:
+      operationId: createPoolClosure
+      tags: [pool-closures]
+      summary: Log a pool closure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePoolClosureBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolClosure"
+
+  /pool-closures/{id}:
+    get:
+      operationId: getPoolClosure
+      tags: [pool-closures]
+      summary: Get a pool closure
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pool closure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolClosure"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePoolClosure
+      tags: [pool-closures]
+      summary: Update a pool closure
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePoolClosureBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolClosure"
+    delete:
+      operationId: deletePoolClosure
+      tags: [pool-closures]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── STEAM ROOM ───────────────────────────────────────────────────────────────
+  /steam-room-checks:
+    get:
+      operationId: listSteamRoomChecks
+      tags: [steam-room]
+      summary: List steam room checks
+      parameters:
+        - name: poolId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: dateFrom
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateTo
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of steam room checks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SteamRoomCheck"
+    post:
+      operationId: createSteamRoomCheck
+      tags: [steam-room]
+      summary: Log a steam room check
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSteamRoomCheckBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SteamRoomCheck"
+
+  /steam-room-checks/{id}:
+    get:
+      operationId: getSteamRoomCheck
+      tags: [steam-room]
+      summary: Get a steam room check
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Steam room check
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SteamRoomCheck"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateSteamRoomCheck
+      tags: [steam-room]
+      summary: Update a steam room check
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSteamRoomCheckBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SteamRoomCheck"
+    delete:
+      operationId: deleteSteamRoomCheck
+      tags: [steam-room]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── WORK ORDERS ──────────────────────────────────────────────────────────────
+  /work-orders:
+    get:
+      operationId: listWorkOrders
+      tags: [work-orders]
+      summary: List work orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: priority
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: assignedTo
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+    post:
+      operationId: createWorkOrder
+      tags: [work-orders]
+      summary: Create a work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkOrderBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/{id}:
+    get:
+      operationId: getWorkOrder
+      tags: [work-orders]
+      summary: Get a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWorkOrder
+      tags: [work-orders]
+      summary: Update a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkOrderBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    delete:
+      operationId: deleteWorkOrder
+      tags: [work-orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── ASSETS ───────────────────────────────────────────────────────────────────
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List assets
+      parameters:
+        - name: facilityId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create an asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssetBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── MAINTENANCE SCHEDULES ────────────────────────────────────────────────────
+  /maintenance-schedules:
+    get:
+      operationId: listMaintenanceSchedules
+      tags: [maintenance-schedules]
+      summary: List maintenance schedules
+      parameters:
+        - name: facilityId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of maintenance schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceSchedule"
+    post:
+      operationId: createMaintenanceSchedule
+      tags: [maintenance-schedules]
+      summary: Create a maintenance schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMaintenanceScheduleBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceSchedule"
+
+  /maintenance-schedules/{id}:
+    get:
+      operationId: getMaintenanceSchedule
+      tags: [maintenance-schedules]
+      summary: Get a maintenance schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Maintenance schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceSchedule"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateMaintenanceSchedule
+      tags: [maintenance-schedules]
+      summary: Update a maintenance schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMaintenanceScheduleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceSchedule"
+    delete:
+      operationId: deleteMaintenanceSchedule
+      tags: [maintenance-schedules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── STAFF ────────────────────────────────────────────────────────────────────
+  /staff:
+    get:
+      operationId: listStaff
+      tags: [staff]
+      summary: List staff members
+      parameters:
+        - name: facilityId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: isActive
+          in: query
+          schema:
+            type: ["boolean", "null"]
+      responses:
+        "200":
+          description: List of staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Staff"
+    post:
+      operationId: createStaff
+      tags: [staff]
+      summary: Create a staff member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStaffBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Staff"
+
+  /staff/{id}:
+    get:
+      operationId: getStaffMember
+      tags: [staff]
+      summary: Get a staff member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Staff member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Staff"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateStaffMember
+      tags: [staff]
+      summary: Update a staff member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStaffBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Staff"
+    delete:
+      operationId: deleteStaffMember
+      tags: [staff]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── STAFF QUALIFICATIONS ─────────────────────────────────────────────────────
+  /staff-qualifications:
+    get:
+      operationId: listStaffQualifications
+      tags: [staff-qualifications]
+      summary: List staff qualifications
+      parameters:
+        - name: staffId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of qualifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffQualification"
+    post:
+      operationId: createStaffQualification
+      tags: [staff-qualifications]
+      summary: Add a staff qualification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStaffQualificationBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffQualification"
+
+  /staff-qualifications/{id}:
+    get:
+      operationId: getStaffQualification
+      tags: [staff-qualifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Qualification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffQualification"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateStaffQualification
+      tags: [staff-qualifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStaffQualificationBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffQualification"
+    delete:
+      operationId: deleteStaffQualification
+      tags: [staff-qualifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── TRAINING RECORDS ─────────────────────────────────────────────────────────
+  /training-records:
+    get:
+      operationId: listTrainingRecords
+      tags: [training-records]
+      summary: List training records
+      parameters:
+        - name: staffId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of training records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrainingRecord"
+    post:
+      operationId: createTrainingRecord
+      tags: [training-records]
+      summary: Create a training record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTrainingRecordBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingRecord"
+
+  /training-records/{id}:
+    get:
+      operationId: getTrainingRecord
+      tags: [training-records]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Training record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingRecord"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTrainingRecord
+      tags: [training-records]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTrainingRecordBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingRecord"
+    delete:
+      operationId: deleteTrainingRecord
+      tags: [training-records]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── NOTIFICATIONS ────────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications
+      parameters:
+        - name: isRead
+          in: query
+          schema:
+            type: ["boolean", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+    post:
+      operationId: createNotification
+      tags: [notifications]
+      summary: Create a notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNotificationBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required:
+                  - updated
+
+  # ── APP USERS ────────────────────────────────────────────────────────────────
+  /app-users:
+    get:
+      operationId: listAppUsers
+      tags: [app-users]
+      summary: List app users
+      responses:
+        "200":
+          description: List of app users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppUser"
+    post:
+      operationId: createAppUser
+      tags: [app-users]
+      summary: Create an app user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppUserBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+
+  /app-users/{id}:
+    get:
+      operationId: getAppUser
+      tags: [app-users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: App user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateAppUser
+      tags: [app-users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppUserBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+    delete:
+      operationId: deleteAppUser
+      tags: [app-users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── AUTH ──────────────────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      operationId: login
+      tags: [app-users]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Invalid credentials
+
+  /auth/pin-login:
+    post:
+      operationId: pinLogin
+      tags: [app-users]
+      summary: Login with staff PIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PinLoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Invalid PIN
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [app-users]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [app-users]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Not authenticated
+
+  # ── DASHBOARD ────────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/pool-status:
+    get:
+      operationId: getDashboardPoolStatus
+      tags: [dashboard]
+      summary: Get current compliance status for all pools
+      responses:
+        "200":
+          description: Pool status list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PoolStatus"
+
+  /dashboard/compliance-trend:
+    get:
+      operationId: getComplianceTrend
+      tags: [dashboard]
+      summary: Get compliance trend for the past 30 days
+      responses:
+        "200":
+          description: Compliance trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceTrendPoint"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /compliance-documents:
+    get:
+      operationId: listComplianceDocuments
+      tags: [compliance]
+      summary: List compliance documents
+      parameters:
+        - in: query
+          name: facilityId
+          schema:
+            type: integer
+        - in: query
+          name: documentType
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [current, expiring_soon, expired]
+      responses:
+        "200":
+          description: List of compliance documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceDocument"
+    post:
+      operationId: createComplianceDocument
+      tags: [compliance]
+      summary: Create a compliance document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateComplianceDocumentBody"
+      responses:
+        "201":
+          description: Created compliance document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceDocument"
+        "400":
+          description: Bad request
+
+  /compliance-documents/expiring:
+    get:
+      operationId: listExpiringComplianceDocuments
+      tags: [compliance]
+      summary: List compliance documents expiring within 60 days
+      responses:
+        "200":
+          description: List of expiring compliance documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceDocument"
+
+  /compliance-documents/{id}:
+    get:
+      operationId: getComplianceDocument
+      tags: [compliance]
+      summary: Get a compliance document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compliance document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceDocument"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateComplianceDocument
+      tags: [compliance]
+      summary: Update a compliance document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateComplianceDocumentBody"
+      responses:
+        "200":
+          description: Updated compliance document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceDocument"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteComplianceDocument
+      tags: [compliance]
+      summary: Delete a compliance document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /settings:
+    get:
+      operationId: listSettings
+      tags: [settings]
+      summary: List all system settings
+      responses:
+        "200":
+          description: List of settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SystemSetting"
+    put:
+      operationId: upsertSetting
+      tags: [settings]
+      summary: Create or update a setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertSettingBody"
+      responses:
+        "200":
+          description: Upserted setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSetting"
+
+  /assets/{id}/attachments:
+    get:
+      operationId: listAssetAttachments
+      tags: [assets]
+      summary: List attachments for an asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of asset attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetAttachment"
+    post:
+      operationId: createAssetAttachment
+      tags: [assets]
+      summary: Add an attachment to an asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetAttachmentBody"
+      responses:
+        "201":
+          description: Created attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetAttachment"
+
+  /assets/{id}/attachments/{attachmentId}:
+    delete:
+      operationId: deleteAssetAttachment
+      tags: [assets]
+      summary: Delete an asset attachment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: attachmentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /dashboard/alerts:
+    get:
+      operationId: getDashboardAlerts
+      tags: [dashboard]
+      summary: Get active alerts (overdue tests, expiring qualifications, open work orders)
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
+  # ── AUDIT LOGS ───────────────────────────────────────────────────────────────
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit-logs]
+      summary: List audit log entries for a record
+      parameters:
+        - name: recordType
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: recordId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Audit log entries (most recent first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLog"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ── FACILITY ──────────────────────────────────────────────────────────────
+    Facility:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    CreateFacilityBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+      required:
+        - name
+
+    UpdateFacilityBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+
+    # ── POOL ──────────────────────────────────────────────────────────────────
+    Pool:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        facilityId:
+          type: integer
+        facilityName:
+          type: ["string", "null"]
+        poolType:
+          type: string
+          enum: [pool, spa, sauna, steam_room]
+        isActive:
+          type: boolean
+        volumeLitres:
+          type: ["number", "null"]
+        customPhMin:
+          type: ["number", "null"]
+        customPhMax:
+          type: ["number", "null"]
+        customFreeChlorineMin:
+          type: ["number", "null"]
+        customFreeChlorineMax:
+          type: ["number", "null"]
+        customTempMin:
+          type: ["number", "null"]
+        customTempMax:
+          type: ["number", "null"]
+        customTurbidityMax:
+          type: ["number", "null"]
+        customCombinedChlorineMax:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: ["integer", "null"]
+        createdByName:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: ["integer", "null"]
+        updatedByName:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - facilityId
+        - poolType
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreatePoolBody:
+      type: object
+      properties:
+        name:
+          type: string
+        facilityId:
+          type: integer
+        poolType:
+          type: string
+          enum: [pool, spa, sauna, steam_room]
+        isActive:
+          type: boolean
+        volumeLitres:
+          type: ["number", "null"]
+        customPhMin:
+          type: ["number", "null"]
+        customPhMax:
+          type: ["number", "null"]
+        customFreeChlorineMin:
+          type: ["number", "null"]
+        customFreeChlorineMax:
+          type: ["number", "null"]
+        customTempMin:
+          type: ["number", "null"]
+        customTempMax:
+          type: ["number", "null"]
+        customTurbidityMax:
+          type: ["number", "null"]
+        customCombinedChlorineMax:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - facilityId
+        - poolType
+
+    UpdatePoolBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        poolType:
+          type: ["string", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        volumeLitres:
+          type: ["number", "null"]
+        customPhMin:
+          type: ["number", "null"]
+        customPhMax:
+          type: ["number", "null"]
+        customFreeChlorineMin:
+          type: ["number", "null"]
+        customFreeChlorineMax:
+          type: ["number", "null"]
+        customTempMin:
+          type: ["number", "null"]
+        customTempMax:
+          type: ["number", "null"]
+        customTurbidityMax:
+          type: ["number", "null"]
+        customCombinedChlorineMax:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── TEST RESULT ───────────────────────────────────────────────────────────
+    TestResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        poolId:
+          type: integer
+        poolName:
+          type: ["string", "null"]
+        testedBy:
+          type: ["string", "null"]
+        testedAt:
+          type: string
+          format: date-time
+        freeChlorine:
+          type: ["number", "null"]
+        totalAvailableChlorine:
+          type: ["number", "null"]
+        combinedChlorine:
+          type: ["number", "null"]
+        ph:
+          type: ["number", "null"]
+        temperature:
+          type: ["number", "null"]
+        turbidity:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        isCompliant:
+          type: boolean
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - poolId
+        - isCompliant
+        - testedAt
+        - createdAt
+
+    CreateTestResultBody:
+      type: object
+      properties:
+        poolId:
+          type: integer
+        testedBy:
+          type: ["string", "null"]
+        testedAt:
+          type: ["string", "null"]
+        freeChlorine:
+          type: ["number", "null"]
+        totalAvailableChlorine:
+          type: ["number", "null"]
+        combinedChlorine:
+          type: ["number", "null"]
+        ph:
+          type: ["number", "null"]
+        temperature:
+          type: ["number", "null"]
+        turbidity:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - poolId
+
+    UpdateTestResultBody:
+      type: object
+      properties:
+        freeChlorine:
+          type: ["number", "null"]
+        totalAvailableChlorine:
+          type: ["number", "null"]
+        combinedChlorine:
+          type: ["number", "null"]
+        ph:
+          type: ["number", "null"]
+        temperature:
+          type: ["number", "null"]
+        turbidity:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── WATER BALANCE TEST ────────────────────────────────────────────────────
+    WaterBalanceTest:
+      type: object
+      properties:
+        id:
+          type: integer
+        poolId:
+          type: integer
+        poolName:
+          type: ["string", "null"]
+        testedBy:
+          type: ["string", "null"]
+        testedAt:
+          type: string
+          format: date-time
+        ph:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        calciumHardness:
+          type: ["number", "null"]
+        cyanuricAcid:
+          type: ["number", "null"]
+        totalDissolvedSolids:
+          type: ["number", "null"]
+        langelier:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - poolId
+        - testedAt
+        - createdAt
+
+    CreateWaterBalanceTestBody:
+      type: object
+      properties:
+        poolId:
+          type: integer
+        testedBy:
+          type: ["string", "null"]
+        testedAt:
+          type: ["string", "null"]
+        ph:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        calciumHardness:
+          type: ["number", "null"]
+        cyanuricAcid:
+          type: ["number", "null"]
+        totalDissolvedSolids:
+          type: ["number", "null"]
+        langelier:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - poolId
+
+    UpdateWaterBalanceTestBody:
+      type: object
+      properties:
+        ph:
+          type: ["number", "null"]
+        totalAlkalinity:
+          type: ["number", "null"]
+        calciumHardness:
+          type: ["number", "null"]
+        cyanuricAcid:
+          type: ["number", "null"]
+        totalDissolvedSolids:
+          type: ["number", "null"]
+        langelier:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── POOL CLOSURE ──────────────────────────────────────────────────────────
+    PoolClosure:
+      type: object
+      properties:
+        id:
+          type: integer
+        poolId:
+          type: integer
+        poolName:
+          type: ["string", "null"]
+        closedBy:
+          type: ["string", "null"]
+        closedAt:
+          type: string
+          format: date-time
+        reopenedAt:
+          type: ["string", "null"]
+        closureCode:
+          type: ["string", "null"]
+        reason:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - poolId
+        - closedAt
+        - reason
+        - createdAt
+
+    CreatePoolClosureBody:
+      type: object
+      properties:
+        poolId:
+          type: integer
+        closedBy:
+          type: ["string", "null"]
+        closedAt:
+          type: ["string", "null"]
+        closureCode:
+          type: ["string", "null"]
+        reason:
+          type: string
+        notes:
+          type: ["string", "null"]
+      required:
+        - poolId
+        - reason
+
+    UpdatePoolClosureBody:
+      type: object
+      properties:
+        closureCode:
+          type: ["string", "null"]
+        reason:
+          type: ["string", "null"]
+        reopenedAt:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── STEAM ROOM CHECK ──────────────────────────────────────────────────────
+    SteamRoomCheck:
+      type: object
+      properties:
+        id:
+          type: integer
+        poolId:
+          type: integer
+        poolName:
+          type: ["string", "null"]
+        checkedBy:
+          type: ["string", "null"]
+        checkedAt:
+          type: string
+          format: date-time
+        temperature:
+          type: ["number", "null"]
+        humidity:
+          type: ["number", "null"]
+        isClean:
+          type: ["boolean", "null"]
+        isOperational:
+          type: ["boolean", "null"]
+        entryType:
+          type: string
+          enum: [day_log, tablet_entry]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - poolId
+        - checkedAt
+        - entryType
+        - createdAt
+
+    CreateSteamRoomCheckBody:
+      type: object
+      properties:
+        poolId:
+          type: integer
+        checkedBy:
+          type: ["string", "null"]
+        checkedAt:
+          type: ["string", "null"]
+        temperature:
+          type: ["number", "null"]
+        humidity:
+          type: ["number", "null"]
+        isClean:
+          type: ["boolean", "null"]
+        isOperational:
+          type: ["boolean", "null"]
+        entryType:
+          type: string
+          enum: [day_log, tablet_entry]
+        notes:
+          type: ["string", "null"]
+      required:
+        - poolId
+        - entryType
+
+    UpdateSteamRoomCheckBody:
+      type: object
+      properties:
+        temperature:
+          type: ["number", "null"]
+        humidity:
+          type: ["number", "null"]
+        isClean:
+          type: ["boolean", "null"]
+        isOperational:
+          type: ["boolean", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── WORK ORDER ────────────────────────────────────────────────────────────
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        facilityId:
+          type: ["integer", "null"]
+        poolId:
+          type: ["integer", "null"]
+        poolName:
+          type: ["string", "null"]
+        assetId:
+          type: ["integer", "null"]
+        assetName:
+          type: ["string", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        status:
+          type: string
+          enum: [open, in_progress, completed, cancelled]
+        assignedTo:
+          type: ["integer", "null"]
+        assignedToName:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: ["integer", "null"]
+        createdByName:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: ["integer", "null"]
+        updatedByName:
+          type: ["string", "null"]
+      required:
+        - id
+        - title
+        - priority
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateWorkOrderBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        facilityId:
+          type: ["integer", "null"]
+        poolId:
+          type: ["integer", "null"]
+        assetId:
+          type: ["integer", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        assignedTo:
+          type: ["integer", "null"]
+        dueDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - title
+        - priority
+
+    UpdateWorkOrderBody:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        priority:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["integer", "null"]
+        assetId:
+          type: ["integer", "null"]
+        dueDate:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── ASSET ─────────────────────────────────────────────────────────────────
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        facilityId:
+          type: ["integer", "null"]
+        category:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [operational, maintenance, decommissioned]
+        barcode:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        manufacturer:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        lastServiceDate:
+          type: ["string", "null"]
+        nextServiceDate:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateAssetBody:
+      type: object
+      properties:
+        name:
+          type: string
+        facilityId:
+          type: ["integer", "null"]
+        category:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [operational, maintenance, decommissioned]
+        barcode:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        manufacturer:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        lastServiceDate:
+          type: ["string", "null"]
+        nextServiceDate:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - status
+
+    UpdateAssetBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        barcode:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        manufacturer:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        lastServiceDate:
+          type: ["string", "null"]
+        nextServiceDate:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── MAINTENANCE SCHEDULE ──────────────────────────────────────────────────
+    MaintenanceSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        facilityId:
+          type: ["integer", "null"]
+        assetId:
+          type: ["integer", "null"]
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, annually]
+        status:
+          type: string
+          enum: [active, paused, completed]
+        lastCompletedAt:
+          type: ["string", "null"]
+        nextDueAt:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - frequency
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateMaintenanceScheduleBody:
+      type: object
+      properties:
+        title:
+          type: string
+        facilityId:
+          type: ["integer", "null"]
+        assetId:
+          type: ["integer", "null"]
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, annually]
+        nextDueAt:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - title
+        - frequency
+
+    UpdateMaintenanceScheduleBody:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        frequency:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        lastCompletedAt:
+          type: ["string", "null"]
+        nextDueAt:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── STAFF ─────────────────────────────────────────────────────────────────
+    Staff:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        facilityId:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        startDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - firstName
+        - lastName
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateStaffBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        facilityId:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        startDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - firstName
+        - lastName
+
+    UpdateStaffBody:
+      type: object
+      properties:
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        startDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── STAFF QUALIFICATION ───────────────────────────────────────────────────
+    StaffQualification:
+      type: object
+      properties:
+        id:
+          type: integer
+        staffId:
+          type: integer
+        staffName:
+          type: ["string", "null"]
+        qualificationName:
+          type: string
+        issuer:
+          type: ["string", "null"]
+        issuedDate:
+          type: ["string", "null"]
+        expiryDate:
+          type: ["string", "null"]
+        certificateNumber:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [current, expiring_soon, expired]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - staffId
+        - qualificationName
+        - status
+        - createdAt
+
+    CreateStaffQualificationBody:
+      type: object
+      properties:
+        staffId:
+          type: integer
+        qualificationName:
+          type: string
+        issuer:
+          type: ["string", "null"]
+        issuedDate:
+          type: ["string", "null"]
+        expiryDate:
+          type: ["string", "null"]
+        certificateNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - staffId
+        - qualificationName
+
+    UpdateStaffQualificationBody:
+      type: object
+      properties:
+        qualificationName:
+          type: ["string", "null"]
+        issuer:
+          type: ["string", "null"]
+        issuedDate:
+          type: ["string", "null"]
+        expiryDate:
+          type: ["string", "null"]
+        certificateNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── TRAINING RECORD ───────────────────────────────────────────────────────
+    TrainingRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        staffId:
+          type: integer
+        staffName:
+          type: ["string", "null"]
+        trainingName:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+        provider:
+          type: ["string", "null"]
+        durationHours:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - staffId
+        - trainingName
+        - createdAt
+
+    CreateTrainingRecordBody:
+      type: object
+      properties:
+        staffId:
+          type: integer
+        trainingName:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+        provider:
+          type: ["string", "null"]
+        durationHours:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - staffId
+        - trainingName
+
+    UpdateTrainingRecordBody:
+      type: object
+      properties:
+        trainingName:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        provider:
+          type: ["string", "null"]
+        durationHours:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # ── NOTIFICATION ──────────────────────────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [compliance_alert, work_order, qualification_expiry, info]
+        isRead:
+          type: boolean
+        relatedEntityType:
+          type: ["string", "null"]
+        relatedEntityId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - message
+        - type
+        - isRead
+        - createdAt
+
+    CreateNotificationBody:
+      type: object
+      properties:
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [compliance_alert, work_order, qualification_expiry, info]
+        relatedEntityType:
+          type: ["string", "null"]
+        relatedEntityId:
+          type: ["integer", "null"]
+      required:
+        - title
+        - message
+        - type
+
+    # ── APP USER ──────────────────────────────────────────────────────────────
+    AppUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [superuser, admin, user]
+        pin:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - role
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateAppUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [superuser, admin, user]
+        password:
+          type: string
+        pin:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+      required:
+        - email
+        - firstName
+        - lastName
+        - role
+        - password
+
+    UpdateAppUserBody:
+      type: object
+      properties:
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        password:
+          type: ["string", "null"]
+        pin:
+          type: ["string", "null"]
+        isActive:
+          type: ["boolean", "null"]
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    PinLoginBody:
+      type: object
+      properties:
+        pin:
+          type: string
+      required:
+        - pin
+
+    # ── DASHBOARD ─────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      properties:
+        testsToday:
+          type: integer
+        compliantToday:
+          type: integer
+        nonCompliantToday:
+          type: integer
+        steamChecksToday:
+          type: integer
+        openWorkOrders:
+          type: integer
+        activePoolCount:
+          type: integer
+        expiringQualifications:
+          type: integer
+      required:
+        - testsToday
+        - compliantToday
+        - nonCompliantToday
+        - steamChecksToday
+        - openWorkOrders
+        - activePoolCount
+        - expiringQualifications
+
+    PoolStatus:
+      type: object
+      properties:
+        poolId:
+          type: integer
+        poolName:
+          type: string
+        facilityName:
+          type: string
+        poolType:
+          type: string
+        isCompliant:
+          type: ["boolean", "null"]
+        lastTestedAt:
+          type: ["string", "null"]
+        freeChlorine:
+          type: ["number", "null"]
+        ph:
+          type: ["number", "null"]
+        temperature:
+          type: ["number", "null"]
+      required:
+        - poolId
+        - poolName
+        - facilityName
+        - poolType
+
+    ComplianceTrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        compliant:
+          type: integer
+        nonCompliant:
+          type: integer
+        total:
+          type: integer
+      required:
+        - date
+        - compliant
+        - nonCompliant
+        - total
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        entityName:
+          type: ["string", "null"]
+        isCompliant:
+          type: ["boolean", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [overdue_test, expiring_qualification, open_work_order, pool_closure]
+        severity:
+          type: string
+          enum: [low, medium, high]
+        message:
+          type: string
+        entityName:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+      required:
+        - id
+        - type
+        - severity
+        - message
+
+    # ── COMPLIANCE DOCUMENTS ───────────────────────────────────────────────────
+    ComplianceDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+        facilityId:
+          type: ["integer", "null"]
+        documentType:
+          type: string
+        documentName:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [current, expiring_soon, expired]
+        issuedDate:
+          type: ["string", "null"]
+          format: date-time
+        expiryDate:
+          type: ["string", "null"]
+          format: date-time
+        issuedBy:
+          type: ["string", "null"]
+        referenceNumber:
+          type: ["string", "null"]
+        documentUrl:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - documentType
+        - documentName
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateComplianceDocumentBody:
+      type: object
+      properties:
+        facilityId:
+          type: integer
+        documentType:
+          type: string
+        documentName:
+          type: string
+        description:
+          type: string
+        issuedDate:
+          type: string
+        expiryDate:
+          type: string
+        issuedBy:
+          type: string
+        referenceNumber:
+          type: string
+        documentUrl:
+          type: string
+        notes:
+          type: string
+      required:
+        - documentType
+        - documentName
+
+    UpdateComplianceDocumentBody:
+      type: object
+      properties:
+        documentType:
+          type: string
+        documentName:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [current, expiring_soon, expired]
+        issuedDate:
+          type: string
+        expiryDate:
+          type: string
+        issuedBy:
+          type: string
+        referenceNumber:
+          type: string
+        documentUrl:
+          type: string
+        notes:
+          type: string
+
+    # ── SYSTEM SETTINGS ────────────────────────────────────────────────────────
+    SystemSetting:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        value:
+          type: ["string", "null"]
+        label:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - key
+        - updatedAt
+
+    UpsertSettingBody:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        label:
+          type: string
+        category:
+          type: string
+      required:
+        - key
+
+    # ── ASSET ATTACHMENTS ──────────────────────────────────────────────────────
+    AssetAttachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        assetId:
+          type: integer
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileType:
+          type: ["string", "null"]
+        fileSize:
+          type: ["integer", "null"]
+        uploadedBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - assetId
+        - fileName
+        - fileUrl
+        - createdAt
+
+    CreateAssetAttachmentBody:
+      type: object
+      properties:
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileType:
+          type: string
+        fileSize:
+          type: integer
+        uploadedBy:
+          type: string
+      required:
+        - fileName
+        - fileUrl
+
+    AuditChange:
+      type: object
+      properties:
+        from: {}
+        to: {}
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        recordType:
+          type: string
+        recordId:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        userName:
+          type: ["string", "null"]
+        action:
+          type: string
+        changes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AuditChange"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - recordType
+        - recordId
+        - action
+        - changes
+        - createdAt

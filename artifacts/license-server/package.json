@@ -1,0 +1,30 @@
+{
+  "name": "@workspace/license-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "export NODE_ENV=development PORT=8082 BASE_PATH=/license-server && pnpm run build && pnpm run start",
+    "build": "node ./build.mjs",
+    "start": "node --enable-source-maps ./dist/index.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "drizzle-orm": "catalog:",
+    "express": "^5",
+    "pino": "^9",
+    "pino-http": "^10",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "catalog:",
+    "esbuild": "^0.27.3",
+    "esbuild-plugin-pino": "^2.3.3",
+    "pino-pretty": "^13",
+    "thread-stream": "3.1.0",
+    "typescript": "~5.9.2"
+  }
+}

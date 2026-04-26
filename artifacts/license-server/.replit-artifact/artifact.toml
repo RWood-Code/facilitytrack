@@ -1,0 +1,33 @@
+kind = "api"
+previewPath = "/license-server"
+title = "Licence Server"
+version = "1.0.0"
+id = "artifacts/license-server"
+
+[[services]]
+localPort = 8082
+name = "Licence Server"
+paths = ["/license-server"]
+
+[services.development]
+run = "pnpm --filter @workspace/license-server run dev"
+
+[services.production]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/license-server", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+# we don't run through pnpm to make startup faster in production
+args = ["node", "--enable-source-maps", "artifacts/license-server/dist/index.mjs"]
+
+[services.production.run.env]
+PORT = "8082"
+NODE_ENV = "production"
+BASE_PATH = "/license-server"
+
+[services.production.health.startup]
+path = "/license-server/api/health"

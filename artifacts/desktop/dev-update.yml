@@ -1,0 +1,7 @@
+# Used by `electron-updater` when running an unpackaged dev build (i.e. when
+# `pnpm run dev` is used). Points the updater at the same generic feed the
+# packaged installer uses, so manual "Check for Updates…" works in dev too.
+provider: generic
+url: https://updates.facilitytrack.co.nz/desktop
+channel: latest
+updaterCacheDirName: facilitytrack-updater

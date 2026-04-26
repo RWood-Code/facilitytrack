@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node modules (installed fresh in Docker)
+**/node_modules
+
+# Build outputs (rebuilt in Docker)
+**/dist
+**/.next
+**/.nuxt
+
+# Dev / test files
+**/*.test.ts
+**/*.spec.ts
+**/vitest.config.*
+**/__tests__
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Replit-specific
+.local
+.replit
+replit.nix
+attached_assets

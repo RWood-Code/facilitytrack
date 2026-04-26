@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1777169897732,
+      "tag": "0000_solid_the_twelve",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1777170496954,
+      "tag": "0001_rare_harpoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777172956026,
+      "tag": "0002_open_dazzler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1777173370161,
+      "tag": "0003_milky_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777200000000,
+      "tag": "0004_backup_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1777300000000,
+      "tag": "0005_backup_needs_reauth",
+      "breakpoints": true
+    }
+  ]
+}

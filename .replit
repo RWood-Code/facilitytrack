@@ -1,0 +1,73 @@
+modules = ["nodejs-24", "postgresql-16", "javascript"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/license-server: Licence Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/desktop: Electron Dev"
+
+[[workflows.workflow]]
+name = "artifacts/license-server: Licence Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/license-server run dev"
+waitForPort = 8082
+
+[[workflows.workflow]]
+name = "artifacts/desktop: Electron Dev"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/desktop run dev"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+integrations = ["github:1.0.0"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3001
+
+[[ports]]
+localPort = 20890
+externalPort = 3000
+
+[nix]
+channel = "stable-25_05"

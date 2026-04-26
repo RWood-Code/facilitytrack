@@ -1,0 +1,47 @@
+# =============================================================================
+# FacilityTrack — Local Docker Compose
+# Use this to test the production Docker image locally before pushing to Azure.
+#
+# Usage:
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# To spin up a fresh DB: docker compose down -v && docker compose up --build
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: facilitytrack
+      POSTGRES_USER: facilitytrack
+      POSTGRES_PASSWORD: facilitytrack_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U facilitytrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://facilitytrack:facilitytrack_local@db:5432/facilitytrack
+      SESSION_SECRET: local-docker-compose-secret-change-in-production
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
