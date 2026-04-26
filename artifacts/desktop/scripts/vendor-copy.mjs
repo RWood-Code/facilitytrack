@@ -110,4 +110,65 @@ console.log(
   `[vendor-copy] better-sqlite3 ABI override: ${desktopBsq} → ${vendorBsq}`,
 );
 
+// ---------------------------------------------------------------------------
+// Transitive runtime deps of better-sqlite3.
+// ---------------------------------------------------------------------------
+//
+// better-sqlite3's lib/database.js does `require('bindings')` to locate its
+// compiled .node file. In pnpm's layout `bindings` lives at
+// node_modules/.pnpm/better-sqlite3@.../node_modules/bindings — i.e. it is a
+// sibling of better-sqlite3 inside its private virtual store, NOT a member
+// of artifacts/api-server/node_modules. The symlink-following copy above
+// only brings the better-sqlite3 directory across, so the installed app
+// crashes the first time getDb() runs with `Cannot find module 'bindings'`.
+//
+// `bindings` itself depends on `file-uri-to-path` at runtime, so we must
+// copy that across too. We deliberately skip `prebuild-install`, which is
+// only used by `npm install` to download a prebuilt binary — never invoked
+// at runtime.
+//
+// Place both packages directly inside vendor/api-server/node_modules/ as
+// siblings of better-sqlite3. Node's resolver then walks up from
+// better-sqlite3/lib/database.js and finds them on the very first lookup.
+const vendorApiNodeModules = resolve(desktop, "vendor", "api-server", "node_modules");
+const transitiveDeps = ["bindings", "file-uri-to-path"];
+
+for (const dep of transitiveDeps) {
+  // Find the package inside .pnpm. Glob via a fs.readdirSync since the
+  // version-pinned folder name (`bindings@1.5.0`) changes when deps are
+  // bumped — we don't want to hard-code versions in two places.
+  const pnpmRoot = resolve(root, "node_modules", ".pnpm");
+  const { readdirSync } = await import("node:fs");
+  let entries = [];
+  try {
+    entries = readdirSync(pnpmRoot, { withFileTypes: true });
+  } catch (err) {
+    console.error(
+      `[vendor-copy] ERROR: cannot read pnpm store at ${pnpmRoot}: ${err.message}`,
+    );
+    process.exit(1);
+  }
+  const match = entries.find(
+    (e) =>
+      e.isDirectory() &&
+      (e.name === dep || e.name.startsWith(`${dep}@`)),
+  );
+  if (!match) {
+    console.error(
+      `[vendor-copy] ERROR: could not find ${dep} in ${pnpmRoot}. ` +
+        "Run `pnpm install` to materialise it.",
+    );
+    process.exit(1);
+  }
+  const src = resolve(pnpmRoot, match.name, "node_modules", dep);
+  const dst = resolve(vendorApiNodeModules, dep);
+  if (!existsSync(src)) {
+    console.error(`[vendor-copy] ERROR: ${dep} package missing at ${src}`);
+    process.exit(1);
+  }
+  rmSync(dst, { recursive: true, force: true });
+  cpSync(src, dst, { recursive: true, dereference: true, force: true });
+  console.log(`[vendor-copy] better-sqlite3 dep ${dep}: ${src} → ${dst}`);
+}
+
 console.log("[vendor-copy] All vendor copies complete.");
