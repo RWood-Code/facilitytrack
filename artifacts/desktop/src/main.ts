@@ -179,7 +179,15 @@ async function startEmbeddedServer(): Promise<RunningServer> {
     host: "127.0.0.1",
     port: 0, // free port
     dbPath,
-    seedDemoData: false,
+    // Seed the demo facility + default admin/manager/staff users on first
+    // launch (only runs when the app_users table is empty — see
+    // runSeedIfEmpty in api-server/src/lib/seed.ts). Without this, a fresh
+    // installation has zero users in SQLite and the customer cannot log in.
+    // The seeded admin (admin@facilitytrack.co.nz / admin123) is intended
+    // as a bootstrap account: customers should create their real users in
+    // Settings → Users and disable the demo accounts immediately after
+    // first sign-in.
+    seedDemoData: true,
   });
   log.info({ url: server.url }, "Embedded API server listening");
   return server;
