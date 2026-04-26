@@ -52,7 +52,7 @@ for (const { label, src, dst } of copies) {
     continue;
   }
   rmSync(dst, { recursive: true, force: true });
-  cpSync(src, dst, { recursive: true });
+  cpSync(src, dst, { recursive: true, dereference: true });
   console.log(`[vendor-copy] ${label}: ${src} → ${dst}`);
 }
 
