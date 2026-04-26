@@ -71,10 +71,18 @@ if (certB64 && certB64.length > 0) {
   tempDir = mkdtempSync(join(tmpdir(), "ft-codesign-"));
   const certPath = join(tempDir, "cert.pfx");
   writeFileSync(certPath, pfxBuffer, { mode: 0o600 });
-  process.env.WIN_CSC_FILE = certPath;
+  // electron-builder reads `WIN_CSC_LINK` (path or base64) and
+  // `WIN_CSC_KEY_PASSWORD` natively — no `certificateFile:` field in
+  // electron-builder.yml is required. We use the env-var route because
+  // declaring `certificateFile: ${env.WIN_CSC_FILE}` in the YAML forces
+  // electron-builder to attempt signing even when the env var is empty
+  // (e.g. ALLOW_UNSIGNED=1), which fails with
+  // "Please specify pkcs12 (.p12/.pfx) file, ${env.WIN_CSC_FILE} is not correct".
+  process.env.WIN_CSC_LINK = certPath;
+  process.env.WIN_CSC_KEY_PASSWORD = certPass;
   signedRelease = true;
   console.log(
-    `[sign-and-build] Decoded code-signing certificate (${pfxBuffer.length} bytes) to ${certPath}.`,
+    `[sign-and-build] Decoded code-signing certificate (${pfxBuffer.length} bytes) to ${certPath}; exported WIN_CSC_LINK.`,
   );
 } else if (isCI && !allowUnsigned) {
   console.error(
@@ -95,8 +103,19 @@ if (certB64 && certB64.length > 0) {
       "[sign-and-build] WIN_CSC_LINK_B64 is not set; building UNSIGNED installer (local dev only).",
     );
   }
-  process.env.WIN_CSC_FILE = "";
-  process.env.WIN_CSC_KEY_PASSWORD = process.env.WIN_CSC_KEY_PASSWORD ?? "";
+  // CRITICAL: do NOT set WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD / WIN_CSC_FILE
+  // here. electron-builder treats any non-empty cert env var (or any
+  // `certificateFile`/`certificatePassword` field in electron-builder.yml)
+  // as "user wants signing" and will invoke signtool. With nothing set it
+  // logs "skipped, .pfx certificate is not specified" and continues
+  // packaging an unsigned installer — which is exactly what we want for
+  // ALLOW_UNSIGNED test builds and local dev. Defensively unset any
+  // pre-existing values so a stale env var from the runner can't trip us up.
+  delete process.env.WIN_CSC_LINK;
+  delete process.env.WIN_CSC_FILE;
+  delete process.env.CSC_LINK;
+  delete process.env.CSC_KEY_PASSWORD;
+  delete process.env.WIN_CSC_KEY_PASSWORD;
 }
 
 const child = spawn("electron-builder", args, {
