@@ -54,21 +54,36 @@ router.post("/license/activate", async (req: Request, res: Response) => {
     });
     return;
   }
-  const result = await activateLicense({
-    serverUrl,
-    key: parsed.data.key,
-    fingerprint: parsed.data.fingerprint,
-  });
-  if (!result) {
-    res.status(502).json({ error: "Could not reach licence server", serverUrl });
-    return;
+  try {
+    const result = await activateLicense({
+      serverUrl,
+      key: parsed.data.key,
+      fingerprint: parsed.data.fingerprint,
+    });
+    if (!result) {
+      res.status(502).json({ error: "Could not reach licence server", serverUrl });
+      return;
+    }
+    if (!result.valid) {
+      res.status(403).json({ error: "Licence is not valid", status: result.status });
+      return;
+    }
+    const status = await getLicenseStatus();
+    res.json({ activated: true, license: status });
+  } catch (err) {
+    // Without this catch any DB / migration / disk failure becomes a bare
+    // 500 with no body, leaving the user staring at "Request failed (500)"
+    // and us with no clue. Log the underlying cause and surface a short
+    // human-readable message so the activation screen can show it.
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err, serverUrl }, "license/activate failed");
+    res.status(500).json({
+      error: `Activation failed on this PC: ${message}`,
+      hint:
+        "This usually means the local database couldn't be opened or initialised. " +
+        "See %APPDATA%\\FacilityTrack\\logs\\main.log for details.",
+    });
   }
-  if (!result.valid) {
-    res.status(403).json({ error: "Licence is not valid", status: result.status });
-    return;
-  }
-  const status = await getLicenseStatus();
-  res.json({ activated: true, license: status });
 });
 
 export const licenseRouter = router;
