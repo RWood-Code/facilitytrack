@@ -80,6 +80,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Remove Replit metadata folders
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter ".replit-artifact" -Directory | Remove-Item -Recurse -Force
+          Write-Host "Removed .replit-artifact folders"
+
       - name: Build and sign Windows installer
         env:
           # Code-signing — consumed by scripts/sign-and-build.mjs. Without
