@@ -6,14 +6,32 @@ import {
   isAllowed,
   type LicenseStatusResponse,
 } from "../lib/license";
+import { logger } from "../lib/logger";
 
 const router: ReturnType<typeof Router> = Router();
 
 const DEFAULT_LICENSE_SERVER = process.env.LICENSE_SERVER_URL ?? "";
 
 router.get("/license/status", async (_req: Request, res: Response) => {
-  const status = await getLicenseStatus();
-  res.json(status);
+  try {
+    const status = await getLicenseStatus();
+    res.json(status);
+  } catch (err) {
+    // Never let a DB / filesystem hiccup turn into a 500 here — that would
+    // strand the user on the "Licence check failed" screen with no way to
+    // enter a key. Log the real cause and respond as if the licence has not
+    // yet been activated, so the frontend renders the activation form.
+    logger.error({ err }, "license/status read failed; reporting never_activated");
+    res.json({
+      activated: false,
+      status: "never_activated",
+      expiresAt: null,
+      customerName: null,
+      lastValidatedAt: null,
+      serverReachable: false,
+      graceRemainingDays: null,
+    } satisfies LicenseStatusResponse);
+  }
 });
 
 const activateSchema = z.object({
