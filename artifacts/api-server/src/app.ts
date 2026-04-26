@@ -42,6 +42,20 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Cookie security: when the api-server runs behind HTTPS (Replit web
+// deployment, the licence server, etc.) we want `secure: true` + strict
+// SameSite. When it runs INSIDE the Electron desktop app it binds plain
+// http://127.0.0.1:<port>, so a `secure: true` cookie never makes it back
+// to the browser on the next request — the user "logs in", the redirect
+// fires, /auth/me sees no session, and the UI bounces back to the sign-in
+// screen. The desktop main process sets FACILITYTRACK_INSECURE_COOKIES=1
+// to opt out of secure cookies (safe because the listener is loopback only
+// and not reachable from any other host on the network).
+const insecureCookies =
+  process.env.FACILITYTRACK_INSECURE_COOKIES === "1" ||
+  process.env.FACILITYTRACK_INSECURE_COOKIES === "true";
+const productionSecureCookie =
+  process.env.NODE_ENV === "production" && !insecureCookies;
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -49,8 +63,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      secure: productionSecureCookie,
+      sameSite: productionSecureCookie ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
