@@ -27,25 +27,21 @@ files:
 # packaged app. Paths are mirrored — the main process resolves them via
 # `process.resourcesPath`.
 extraResources:
-  - from: "../facilitytrack/dist/public"
+  - from: "vendor/facilitytrack/dist/public"
     to: "facilitytrack/dist/public"
     filter:
       - "**/*"
-      - "!**/.replit-artifact/**"
-  - from: "../api-server/dist"
+  - from: "vendor/api-server"
     to: "api-server/dist"
     filter:
       - "**/*"
-      - "!**/.replit-artifact/**"
-  - from: "../../lib/db/drizzle"
+  - from: "vendor/db/drizzle"
     to: "lib/db/drizzle"
     filter:
       - "**/*"
-      - "!**/.replit-artifact/**"
 
 asarUnpack:
   - "**/node_modules/better-sqlite3/**"
-  - "!**/node_modules/@workspace/**"
 
 win:
   target:
