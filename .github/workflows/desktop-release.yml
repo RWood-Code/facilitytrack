@@ -80,30 +80,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Prepare local copies for electron-builder
-        shell: pwsh
-        run: |
-          # Copy workspace outputs into desktop folder so electron-builder
-          # never has to follow symlinks outside artifacts/desktop/
-          $desktop = "artifacts/desktop"
-          
-          # api-server dist
-          $dst1 = "$desktop/vendor/api-server"
-          if (Test-Path $dst1) { Remove-Item $dst1 -Recurse -Force }
-          Copy-Item "artifacts/api-server/dist" $dst1 -Recurse
-
-          # db migrations
-          $dst2 = "$desktop/vendor/db"
-          if (Test-Path $dst2) { Remove-Item $dst2 -Recurse -Force }
-          Copy-Item "lib/db/drizzle" "$dst2/drizzle" -Recurse
-
-          # frontend dist
-          $dst3 = "$desktop/vendor/facilitytrack"
-          if (Test-Path $dst3) { Remove-Item $dst3 -Recurse -Force }
-          Copy-Item "artifacts/facilitytrack/dist/public" "$dst3/dist/public" -Recurse
-
-          Write-Host "Vendor copies ready"
-
       - name: Build and sign Windows installer
         env:
           # Code-signing — consumed by scripts/sign-and-build.mjs. Without
@@ -116,10 +92,10 @@ jobs:
           # This NEVER fires on tag pushes — `inputs.unsigned` is empty
           # there — so the customer release path always requires signing.
           ALLOW_UNSIGNED: ${{ inputs.unsigned == true && '1' || '' }}
-        # `dist:win` (not `dist:win:publish`) because the customer feed is
-        # `generic` (download-only) and we upload to it explicitly in the
-        # next step. Running `--publish always` here against the generic
-        # provider would just emit a warning and do nothing.
+        # dist:win runs: build:all → vendor:copy → sign-and-build.mjs
+        # vendor:copy copies workspace outputs into artifacts/desktop/vendor/
+        # so electron-builder never follows pnpm symlinks outside the desktop
+        # folder (which it refuses to do).
         run: pnpm --filter @workspace/desktop run dist:win
 
       - name: Upload installer as workflow artifact
