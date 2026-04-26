@@ -19,8 +19,45 @@ import { app, BrowserWindow, dialog, ipcMain, shell, Menu } from "electron";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import * as crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
+
+// ---------------------------------------------------------------------------
+// Embedded API server module loader.
+//
+// In dev (`pnpm run dev`), the api-server is reachable via the pnpm
+// workspace symlink at `node_modules/@workspace/api-server` and we just
+// `import("@workspace/api-server/embed")`.
+//
+// In a packaged installer (`app.isPackaged === true`), the workspace
+// symlink does NOT exist — `@workspace/api-server` and `@workspace/db`
+// are declared as `devDependencies` precisely so electron-builder leaves
+// them out of the asar (otherwise it tries to follow the symlink and
+// trips on files outside `artifacts/desktop/`, e.g. `.replit-artifact/`).
+// Instead, the bundled `embed.mjs` produced by api-server's esbuild step
+// is copied into `extraResources` at `<resourcesPath>/api-server/dist/`
+// by `scripts/vendor-copy.mjs`, and we load it via an absolute file URL.
+//
+// The file URL is required (not a bare path) because dynamic `import()`
+// of an absolute Windows path like `C:\…\embed.mjs` is rejected by Node
+// as not a valid module specifier.
+// ---------------------------------------------------------------------------
+
+type EmbedModule = typeof import("@workspace/api-server/embed");
+
+async function loadEmbedModule(): Promise<EmbedModule> {
+  if (app.isPackaged) {
+    const embedPath = path.join(
+      process.resourcesPath,
+      "api-server",
+      "dist",
+      "embed.mjs",
+    );
+    return (await import(pathToFileURL(embedPath).href)) as EmbedModule;
+  }
+  return (await import("@workspace/api-server/embed")) as EmbedModule;
+}
 
 // ---------------------------------------------------------------------------
 // Azure AD app registration baked into the desktop build.
@@ -137,8 +174,7 @@ async function startEmbeddedServer(): Promise<RunningServer> {
 
   log.info({ dbPath, staticPath, migrationsPath }, "Starting embedded API server");
 
-  const mod: { startServer: (opts: Record<string, unknown>) => Promise<RunningServer> } =
-    await import("@workspace/api-server/embed");
+  const mod = await loadEmbedModule();
   const server = await mod.startServer({
     host: "127.0.0.1",
     port: 0, // free port
@@ -438,9 +474,7 @@ async function pollForToken(
 }
 
 async function persistRefreshToken(refreshToken: string): Promise<string> {
-  const mod: typeof import("@workspace/api-server/embed") = await import(
-    "@workspace/api-server/embed"
-  );
+  const mod = await loadEmbedModule();
   const existing = await mod.getBackupState();
   await mod.configureBackup({
     clientId: AZURE_CLIENT_ID,
