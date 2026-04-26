@@ -5,6 +5,15 @@ directories:
   output: release
   buildResources: assets
 
+# We invoke @electron/rebuild ourselves via the `rebuild:electron` npm
+# script (see package.json) BEFORE vendor:copy runs. That way the
+# Electron-ABI better-sqlite3 binary is the one that gets vendored into
+# resources/api-server/dist/node_modules/. Letting electron-builder run
+# its own rebuild pass on top of that would either be redundant or could
+# mutate desktop/node_modules in a way that no longer matches what we
+# already vendored. Disable it.
+npmRebuild: false
+
 # Files inside `app.asar`. Only the Electron main bundle and package.json.
 # Workspace packages (@workspace/api-server etc.) are NOT bundled here —
 # they are copied into vendor/ by scripts/vendor-copy.mjs before this runs,
@@ -51,16 +60,22 @@ win:
       arch:
         - x64
   artifactName: "FacilityTrack-Setup-${version}.${ext}"
-  icon: assets/icon.ico
-  # Code signing. The wrapper at scripts/sign-and-build.mjs decodes the
-  # base64 PFX from `WIN_CSC_LINK_B64` to a temp file and exports
-  # `WIN_CSC_FILE` before invoking electron-builder. `WIN_CSC_KEY_PASSWORD`
-  # holds the PFX password (both come from CI secrets — see
-  # README.md#code-signing). When the env vars are absent (local dev),
-  # both fields resolve to empty strings and electron-builder produces an
-  # unsigned installer.
-  certificateFile: ${env.WIN_CSC_FILE}
-  certificatePassword: ${env.WIN_CSC_KEY_PASSWORD}
+  # NOTE: `icon:` intentionally omitted — no branded .ico file exists yet.
+  # electron-builder will use its default Electron icon. Add a real
+  # `assets/icon.ico` (256x256 multi-resolution) before the first signed
+  # customer release and uncomment a line like:
+  #   icon: assets/icon.ico
+  #
+  # Code-signing fields (`certificateFile`, `certificatePassword`) are
+  # intentionally NOT declared here. The wrapper at
+  # scripts/sign-and-build.mjs sets `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`
+  # in the environment when a real cert was decoded from
+  # `WIN_CSC_LINK_B64`; electron-builder picks those env vars up and signs
+  # natively. When neither env var is set (local dev or `ALLOW_UNSIGNED=1`
+  # test builds) electron-builder skips signing instead of failing on a
+  # placeholder path — which is what would happen if we left
+  # `certificateFile: ${env.WIN_CSC_FILE}` declared and the env var was
+  # empty.
   signingHashAlgorithms:
     - sha256
   # RFC 3161 timestamp server. Counter-signs the Authenticode signature
